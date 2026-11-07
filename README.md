@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Cross-Event Flood Extent Segmentation (Sentinel-1 SAR)
 
 Code for the paper:
@@ -115,3 +116,7 @@ A fixed threshold of 0.5 is used to convert probability maps to flood masks.
 This work uses the Sen1Floods11 dataset:
 
 > D. Bonafilia, B. Tellman, T. Anderson, and E. Issenberg, "Sen1Floods11: A georeferenced dataset to train and test deep learning flood algorithms for Sentinel-1," in *Proc. IEEE/CVF CVPR Workshops*, 2020, pp. 835-845.
+=======
+# cross-event-flood-segmentation
+Code for the ICAC 2026 paper on cross-event flood segmentation
+>>>>>>> 6698090c4236c824928b7c368f1f7d4cad2712d1
