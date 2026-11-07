@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Cross-Event Flood Extent Segmentation (Sentinel-1 SAR)
 
 Code for the paper:
@@ -11,14 +10,15 @@ This repository contains the code used for data loading, data splits, training, 
 
 | File | Purpose |
 | --- | --- |
-| `dataset.py` | Data loader for the Sen1Floods11 hand-labeled subset (clipping, normalization, resizing, "not sure" mask) |
-| `make_splits.py` | Creates the random split (312 train / 66 validation / 68 test) |
+| `generate_metadata.py` | Builds the list of hand-labeled image-mask pairs (446 pairs, 11 events) |
+| `make_splits.py` | Creates the random split (312 train / 67 validation / 67 test) |
 | `make_multi_event_splits.py` | Creates the cross-event splits (Sri Lanka, Ghana, Bolivia held out) |
-| `generate_metadata.py` | Builds the list of image-mask pairs used by the split scripts |
-| `model.py` | U-Net with ResNet-34 encoder (ImageNet pretrained) |
-| `attention_unet.py` | Attention U-Net (Oktay et al., 2018), trained from scratch |
+| `dataset.py` | Data loader for the Sen1Floods11 hand-labeled subset |
+| `model.py` | Standard U-Net, trained from scratch |
+| `attention_unet.py` | Attention U-Net (same architecture as U-Net plus additive attention gates), trained from scratch |
 | `train.py` | Model training |
 | `evaluate.py` | Pixel-level and structural evaluation metrics |
+| `splits/` | Exact training, validation, and test file lists used in the paper |
 | `requirements.txt` | Python packages |
 
 ## 1. Installation
@@ -33,30 +33,32 @@ pip install -r requirements.txt
 
 1. Download the Sen1Floods11 dataset: https://github.com/cloudtostreet/Sen1Floods11
 2. Use only the hand-labeled Sentinel-1 images (`S1Hand`) and labels (`LabelHand`): 446 image-mask pairs from 11 flood events.
-3. Place them in a `data/` folder, or change the data path in the scripts.
+3. Set the data and output paths at the top of each script (`DATA_ROOT`, `METADATA_CSV`, `OUTPUT_DIR`, and the split paths) to the folders on your computer.
 
 The dataset is not included in this repository.
 
 ## 3. Preprocessing (in `dataset.py`)
 
-- Input: two-channel SAR image (VV and VH), values in dB.
-- NaN and infinite values are replaced with -50 dB.
-- Values are clipped to [-50, 1] dB.
-- Each band is min-max normalized to [0, 1].
-- Images and masks are resized to 256 x 256 pixels.
-- Label values: 1 = flooded, 0 = not flooded, -1 = "not sure".
-- Pixels labeled -1 are excluded from the loss and all metrics using a validity mask.
+- Input: two-channel SAR image (VV and VH).
+- NaN and infinite values are replaced with 0.
+- Images are resized to 256 x 256 pixels using bilinear interpolation; masks using nearest-neighbor interpolation.
+- Each band of each image is min-max normalized to [0, 1]: `x' = (x - x_min) / (x_max - x_min)`, where `x_min` and `x_max` are the minimum and maximum of that band in that image.
+- Label values in Sen1Floods11: 1 = flooded, 0 = not flooded, -1 = "not sure".
+- Pixels labeled 1 are treated as flooded; all other pixels, including "not sure" pixels, are treated as non-flooded.
+- No data augmentation is used.
 
 ## 4. Data splits
 
-All splits use a fixed random seed (seed = 0).
+All splits are created with scikit-learn's `train_test_split` using a fixed random seed (`random_state = 42`), stratified by flood event.
 
 | Setting | Train | Validation | Test |
 | --- | --- | --- | --- |
-| Random split | 312 | 66 | 68 |
-| Sri Lanka held out | 324 | 80 | 42 |
-| Ghana held out | 315 | 78 | 53 |
-| Bolivia held out | 345 | 86 | 15 |
+| Random split (70 / 15 / 15) | 312 | 67 | 67 |
+| Sri Lanka held out | 323 | 81 | 42 |
+| Ghana held out | 314 | 79 | 53 |
+| Bolivia held out | 344 | 87 | 15 |
+
+In the cross-event setting, all samples of the held-out event form the test set, and the remaining samples are split 80% training / 20% validation.
 
 To create the splits:
 
@@ -66,7 +68,11 @@ python make_splits.py
 python make_multi_event_splits.py
 ```
 
+The exact split files used in the paper are provided in `splits/`. Note: `make_splits.py` also creates `splits/cross_event_split/` from an earlier single-event experiment; the results in the paper use `splits/random_split/` and `splits/multi_cross_event_splits/`.
+
 ## 5. Training
+
+Set `MODEL_NAME` (`"unet"` or `"attention_unet"`), `EXPERIMENT` (`"random"` or `"cross_event"`), and `HELD_OUT_EVENT` (`"Sri-Lanka"`, `"Ghana"`, or `"Bolivia"`) at the top of `train.py`, then run:
 
 ```bash
 python train.py
@@ -76,29 +82,36 @@ Training settings:
 
 | Setting | Value |
 | --- | --- |
-| Optimizer | AdamW |
+| Initialization | Random (trained from scratch, no pretrained weights) |
+| Optimizer | Adam |
 | Learning rate | 1e-4 |
-| Weight decay | 1e-4 |
-| Batch size | 8 |
-| Schedule | Cosine annealing, max 80 epochs |
-| Early stopping | 15 epochs without validation Dice improvement |
-| Loss | Weighted binary cross-entropy + Dice (valid pixels only) |
-| Augmentation | Flips, 90-degree rotations, brightness/contrast jitter, Gaussian noise 
-| Hardware | Intel Core i7-5500U CPU (2.40 GHz), 16 GB RAM, PyTorch 2.12.1 (CPU), Python 3.11 |
-| Seed | 0 |
+| Batch size | 4 |
+| Epochs | 20 |
+| Model selection | Checkpoint with the highest validation Dice score |
+| Learning-rate schedule | None |
+| Augmentation | None |
+| Loss | Binary cross-entropy + Dice (unweighted) |
+| Training runs | One run per configuration |
+| Hardware | Intel Core i7-5500U CPU (2.40 GHz), 16 GB RAM |
+| Software | Python 3.11, PyTorch 2.12.1 (CPU) |
 
 ## 6. Evaluation
+
+Use the same `MODEL_NAME`, `EXPERIMENT`, and `HELD_OUT_EVENT` settings at the top of `evaluate.py`, then run:
 
 ```bash
 python evaluate.py
 ```
 
-Metrics:
+Metrics (computed for each test image and then averaged over the test set):
 
-- Pixel-level: IoU, Dice, precision, recall, F1-score
-- Structural: Boundary IoU, Hausdorff Distance (95th percentile), clDice, Betti Error
+- **Pixel-level:** IoU, Dice, precision, recall, F1-score (F1 equals Dice for binary masks).
+- **Boundary IoU:** boundary width of 2% of the image diagonal (7 pixels for 256 x 256 images).
+- **Hausdorff Distance:** maximum distance in pixels between predicted and ground-truth flood regions; images where the prediction or ground truth has no flooded pixels are excluded from its average.
+- **clDice:** skeleton-based structural similarity.
+- **Betti Error:** difference in the number of connected components plus difference in the number of holes, using 4-connectivity.
 
-A fixed threshold of 0.5 is used to convert probability maps to flood masks.
+A fixed threshold of 0.5 is used to convert probability maps to flood masks. Per-image results and summary results are saved as CSV files.
 
 ## Citation
 
@@ -116,7 +129,3 @@ A fixed threshold of 0.5 is used to convert probability maps to flood masks.
 This work uses the Sen1Floods11 dataset:
 
 > D. Bonafilia, B. Tellman, T. Anderson, and E. Issenberg, "Sen1Floods11: A georeferenced dataset to train and test deep learning flood algorithms for Sentinel-1," in *Proc. IEEE/CVF CVPR Workshops*, 2020, pp. 835-845.
-=======
-# cross-event-flood-segmentation
-Code for the ICAC 2026 paper on cross-event flood segmentation
->>>>>>> 6698090c4236c824928b7c368f1f7d4cad2712d1
