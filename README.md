@@ -53,19 +53,12 @@ All splits are created with scikit-learn's `train_test_split` using a fixed rand
 
 | Setting | Train | Validation | Test |
 | --- | --- | --- | --- |
-<<<<<<< HEAD
 | Random split (70 / 15 / 15) | 312 | 67 | 67 |
 | Sri Lanka held out | 323 | 81 | 42 |
 | Ghana held out | 314 | 79 | 53 |
 | Bolivia held out | 344 | 87 | 15 |
 
 In the cross-event setting, all samples of the held-out event form the test set, and the remaining samples are split 80% training / 20% validation.
-=======
-| Random split | 312 | 67 | 67 |
-| Sri Lanka held out | 323 | 81 | 42 |
-| Ghana held out | 314 | 79 | 53 |
-| Bolivia held out | 344 | 87 | 15 |
->>>>>>> 38c7020cf7cd09d35d9cfff266d6480ee44e3f9c
 
 To create the splits:
 
