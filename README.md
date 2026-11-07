@@ -53,10 +53,10 @@ All splits use a fixed random seed (seed = 0).
 
 | Setting | Train | Validation | Test |
 | --- | --- | --- | --- |
-| Random split | 312 | 66 | 68 |
-| Sri Lanka held out | 324 | 80 | 42 |
-| Ghana held out | 315 | 78 | 53 |
-| Bolivia held out | 345 | 86 | 15 |
+| Random split | 312 | 67 | 67 |
+| Sri Lanka held out | 323 | 81 | 42 |
+| Ghana held out | 314 | 79 | 53 |
+| Bolivia held out | 344 | 87 | 15 |
 
 To create the splits:
 
