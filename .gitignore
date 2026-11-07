@@ -1,0 +1,13 @@
+.venv/
+venv/
+data/
+outputs/
+.idea/
+__pycache__/
+*.pyc
+*.pth
+*.pt
+*.tif
+inspect_filenames.py
+test_dataset.py
+threshold_test.py
