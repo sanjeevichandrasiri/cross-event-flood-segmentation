@@ -83,8 +83,8 @@ Training settings:
 | Schedule | Cosine annealing, max 80 epochs |
 | Early stopping | 15 epochs without validation Dice improvement |
 | Loss | Weighted binary cross-entropy + Dice (valid pixels only) |
-| Augmentation | Flips, 90-degree rotations, brightness/contrast jitter, Gaussian noise |
-| Mixed precision | Yes |
+| Augmentation | Flips, 90-degree rotations, brightness/contrast jitter, Gaussian noise 
+| Hardware | Intel Core i7-5500U CPU (2.40 GHz), 16 GB RAM, PyTorch 2.12.1 (CPU), Python 3.11 |
 | Seed | 0 |
 
 ## 6. Evaluation
